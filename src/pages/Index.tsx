@@ -83,6 +83,9 @@ const Index = () => {
   const [newCard, setNewCard] = useState({ title: '', description: '', photo: '🎯' });
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [isEditPlayerDialogOpen, setIsEditPlayerDialogOpen] = useState(false);
+  const [photoInput, setPhotoInput] = useState('');
 
   const [gameState, setGameState] = useState<{
     chooser: Player | null;
@@ -111,6 +114,44 @@ const Index = () => {
     setNewPlayer({ name: '', description: '', photo: '🧑' });
     setIsPlayerDialogOpen(false);
     toast.success('Игрок добавлен!');
+  };
+
+  const openEditPlayer = (player: Player) => {
+    setEditingPlayer(player);
+    setPhotoInput(player.photo);
+    setIsEditPlayerDialogOpen(true);
+  };
+
+  const updatePlayer = () => {
+    if (!editingPlayer) return;
+    if (!editingPlayer.name.trim()) {
+      toast.error('Введите имя игрока');
+      return;
+    }
+    setPlayers(players.map(p => p.id === editingPlayer.id ? editingPlayer : p));
+    setIsEditPlayerDialogOpen(false);
+    setEditingPlayer(null);
+    setPhotoInput('');
+    toast.success('Игрок обновлён!');
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (editingPlayer) {
+        setEditingPlayer({ ...editingPlayer, photo: base64String });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const addCard = () => {
@@ -243,15 +284,100 @@ const Index = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {players.map((player) => (
-                <Card key={player.id} className="hover:shadow-lg transition-all hover:-translate-y-1">
+                <Card key={player.id} className="hover:shadow-lg transition-all hover:-translate-y-1 group relative">
                   <CardHeader>
-                    <div className="text-5xl mb-2">{player.photo}</div>
-                    <CardTitle>{player.name}</CardTitle>
-                    <CardDescription>{player.description}</CardDescription>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-5xl mb-2">
+                          {player.photo.startsWith('data:') ? (
+                            <img src={player.photo} alt={player.name} className="w-16 h-16 rounded-full object-cover" />
+                          ) : (
+                            player.photo
+                          )}
+                        </div>
+                        <CardTitle>{player.name}</CardTitle>
+                        <CardDescription>{player.description}</CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditPlayer(player)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Icon name="Pencil" size={16} />
+                      </Button>
+                    </div>
                   </CardHeader>
                 </Card>
               ))}
             </div>
+
+            <Dialog open={isEditPlayerDialogOpen} onOpenChange={setIsEditPlayerDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Редактировать игрока</DialogTitle>
+                  <DialogDescription>Измените данные участника</DialogDescription>
+                </DialogHeader>
+                {editingPlayer && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-player-name">Имя</Label>
+                      <Input
+                        id="edit-player-name"
+                        value={editingPlayer.name}
+                        onChange={(e) => setEditingPlayer({ ...editingPlayer, name: e.target.value })}
+                        placeholder="Введите имя"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-player-desc">Описание</Label>
+                      <Textarea
+                        id="edit-player-desc"
+                        value={editingPlayer.description}
+                        onChange={(e) => setEditingPlayer({ ...editingPlayer, description: e.target.value })}
+                        placeholder="Краткое описание игрока"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-player-photo">Фото</Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                          <div className="text-5xl">
+                            {editingPlayer.photo.startsWith('data:') ? (
+                              <img src={editingPlayer.photo} alt="Preview" className="w-16 h-16 rounded-full object-cover" />
+                            ) : (
+                              editingPlayer.photo
+                            )}
+                          </div>
+                          <Input
+                            id="edit-player-photo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="flex-1"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-px bg-border flex-1" />
+                          <span className="text-xs text-muted-foreground">или</span>
+                          <div className="h-px bg-border flex-1" />
+                        </div>
+                        <Input
+                          value={photoInput}
+                          onChange={(e) => {
+                            setPhotoInput(e.target.value);
+                            setEditingPlayer({ ...editingPlayer, photo: e.target.value });
+                          }}
+                          placeholder="Введите эмодзи 🧑"
+                          maxLength={2}
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={updatePlayer} className="w-full">Сохранить</Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="cards" className="animate-fade-in">
