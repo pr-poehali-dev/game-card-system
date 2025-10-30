@@ -19,7 +19,8 @@ interface Player {
 interface GameCard {
   id: string;
   title: string;
-  description: string;
+  city: string;
+  age: string;
   photo: string;
 }
 
@@ -52,27 +53,31 @@ const Index = () => {
   const [gameCards, setGameCards] = useState<GameCard[]>([
     {
       id: '1',
-      title: 'Прыжок с парашютом',
-      description: 'Экстремальное приключение в небе',
-      photo: '🪂'
+      title: 'Александра',
+      city: 'Москва',
+      age: '25',
+      photo: '👩'
     },
     {
       id: '2',
-      title: 'Музыкальный фестиваль',
-      description: 'Три дня живой музыки',
-      photo: '🎵'
+      title: 'Дмитрий',
+      city: 'Санкт-Петербург',
+      age: '28',
+      photo: '🧑'
     },
     {
       id: '3',
-      title: 'Кулинарный мастер-класс',
-      description: 'Учимся готовить изысканные блюда',
-      photo: '👨‍🍳'
+      title: 'Екатерина',
+      city: 'Казань',
+      age: '23',
+      photo: '👩'
     },
     {
       id: '4',
-      title: 'Путешествие в горы',
-      description: 'Неделя в горах с палатками',
-      photo: '⛰️'
+      title: 'Михаил',
+      city: 'Новосибирск',
+      age: '30',
+      photo: '👨'
     }
   ]);
 
@@ -80,7 +85,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('players');
 
   const [newPlayer, setNewPlayer] = useState({ name: '', description: '', photo: '🧑' });
-  const [newCard, setNewCard] = useState({ title: '', description: '', photo: '🎯' });
+  const [newCard, setNewCard] = useState({ title: '', city: '', age: '', photo: '🎯' });
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
@@ -89,6 +94,8 @@ const Index = () => {
   const [editingCard, setEditingCard] = useState<GameCard | null>(null);
   const [isEditCardDialogOpen, setIsEditCardDialogOpen] = useState(false);
   const [cardPhotoInput, setCardPhotoInput] = useState('');
+  const [viewingCard, setViewingCard] = useState<GameCard | null>(null);
+  const [isViewCardDialogOpen, setIsViewCardDialogOpen] = useState(false);
 
   const [gameState, setGameState] = useState<{
     chooser: Player | null;
@@ -178,17 +185,18 @@ const Index = () => {
 
   const addCard = () => {
     if (!newCard.title.trim()) {
-      toast.error('Введите название карточки');
+      toast.error('Введите имя');
       return;
     }
     const card: GameCard = {
       id: Date.now().toString(),
       title: newCard.title,
-      description: newCard.description,
+      city: newCard.city,
+      age: newCard.age,
       photo: newCard.photo
     };
     setGameCards([...gameCards, card]);
-    setNewCard({ title: '', description: '', photo: '🎯' });
+    setNewCard({ title: '', city: '', age: '', photo: '🎯' });
     setIsCardDialogOpen(false);
     toast.success('Карточка добавлена!');
   };
@@ -202,7 +210,7 @@ const Index = () => {
   const updateCard = () => {
     if (!editingCard) return;
     if (!editingCard.title.trim()) {
-      toast.error('Введите название карточки');
+      toast.error('Введите имя');
       return;
     }
     setGameCards(gameCards.map(c => c.id === editingCard.id ? editingCard : c));
@@ -210,6 +218,11 @@ const Index = () => {
     setEditingCard(null);
     setCardPhotoInput('');
     toast.success('Карточка обновлена!');
+  };
+
+  const openViewCard = (card: GameCard) => {
+    setViewingCard(card);
+    setIsViewCardDialogOpen(true);
   };
 
   const startNewGame = (chooser: Player, player: Player, card1: GameCard, card2: GameCard) => {
@@ -438,31 +451,48 @@ const Index = () => {
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="card-title">Название</Label>
+                      <Label htmlFor="card-title">Имя</Label>
                       <Input
                         id="card-title"
                         value={newCard.title}
                         onChange={(e) => setNewCard({ ...newCard, title: e.target.value })}
-                        placeholder="Название карточки"
+                        placeholder="Введите имя"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="card-desc">Описание</Label>
-                      <Textarea
-                        id="card-desc"
-                        value={newCard.description}
-                        onChange={(e) => setNewCard({ ...newCard, description: e.target.value })}
-                        placeholder="Описание карточки"
+                      <Label htmlFor="card-city">Город</Label>
+                      <Input
+                        id="card-city"
+                        value={newCard.city}
+                        onChange={(e) => setNewCard({ ...newCard, city: e.target.value })}
+                        placeholder="Введите город"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="card-photo">Эмодзи</Label>
+                      <Label htmlFor="card-age">Возраст</Label>
+                      <Input
+                        id="card-age"
+                        value={newCard.age}
+                        onChange={(e) => setNewCard({ ...newCard, age: e.target.value })}
+                        placeholder="Введите возраст"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="card-photo">Эмодзи или фото</Label>
                       <Input
                         id="card-photo"
-                        value={newCard.photo}
-                        onChange={(e) => setNewCard({ ...newCard, photo: e.target.value })}
-                        placeholder="🎯"
-                        maxLength={2}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setNewCard({ ...newCard, photo: reader.result as string });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
                       />
                     </div>
                     <Button onClick={addCard} className="w-full">Добавить</Button>
@@ -473,33 +503,73 @@ const Index = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {gameCards.map((card) => (
-                <Card key={card.id} className="hover:shadow-lg transition-all hover:-translate-y-1 group relative">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="text-5xl mb-2">
-                          {card.photo.startsWith('data:') ? (
-                            <img src={card.photo} alt={card.title} className="w-16 h-16 rounded-lg object-cover" />
-                          ) : (
-                            card.photo
-                          )}
-                        </div>
-                        <CardTitle className="text-lg">{card.title}</CardTitle>
-                        <CardDescription className="text-sm">{card.description}</CardDescription>
+                <Card 
+                  key={card.id} 
+                  className="overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-2 group relative cursor-pointer h-80"
+                  onClick={() => openViewCard(card)}
+                >
+                  <div className="relative h-full">
+                    {card.photo.startsWith('data:') ? (
+                      <img src={card.photo} alt={card.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 text-8xl">
+                        {card.photo}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditCard(card)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Icon name="Pencil" size={16} />
-                      </Button>
+                    )}
+                    
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    
+                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                      <h3 className="text-xl font-bold mb-1">{card.title}</h3>
+                      <p className="text-sm opacity-90 flex items-center gap-1">
+                        <Icon name="MapPin" size={14} />
+                        {card.city}
+                      </p>
+                      <p className="text-sm opacity-90">{card.age} лет</p>
                     </div>
-                  </CardHeader>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditCard(card);
+                      }}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/30 text-white"
+                    >
+                      <Icon name="Pencil" size={16} />
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>
+
+            <Dialog open={isViewCardDialogOpen} onOpenChange={setIsViewCardDialogOpen}>
+              <DialogContent className="max-w-md">
+                {viewingCard && (
+                  <div className="space-y-4">
+                    <div className="relative h-96 -mx-6 -mt-6 mb-4">
+                      {viewingCard.photo.startsWith('data:') ? (
+                        <img src={viewingCard.photo} alt={viewingCard.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 text-9xl">
+                          {viewingCard.photo}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <h2 className="text-3xl font-bold mb-2">{viewingCard.title}</h2>
+                        <p className="text-lg flex items-center gap-2">
+                          <Icon name="MapPin" size={18} />
+                          {viewingCard.city}
+                        </p>
+                        <p className="text-lg">{viewingCard.age} лет</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             <Dialog open={isEditCardDialogOpen} onOpenChange={setIsEditCardDialogOpen}>
               <DialogContent>
@@ -510,21 +580,30 @@ const Index = () => {
                 {editingCard && (
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="edit-card-title">Название</Label>
+                      <Label htmlFor="edit-card-title">Имя</Label>
                       <Input
                         id="edit-card-title"
                         value={editingCard.title}
                         onChange={(e) => setEditingCard({ ...editingCard, title: e.target.value })}
-                        placeholder="Название карточки"
+                        placeholder="Введите имя"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="edit-card-desc">Описание</Label>
-                      <Textarea
-                        id="edit-card-desc"
-                        value={editingCard.description}
-                        onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })}
-                        placeholder="Описание карточки"
+                      <Label htmlFor="edit-card-city">Город</Label>
+                      <Input
+                        id="edit-card-city"
+                        value={editingCard.city}
+                        onChange={(e) => setEditingCard({ ...editingCard, city: e.target.value })}
+                        placeholder="Введите город"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-card-age">Возраст</Label>
+                      <Input
+                        id="edit-card-age"
+                        value={editingCard.age}
+                        onChange={(e) => setEditingCard({ ...editingCard, age: e.target.value })}
+                        placeholder="Введите возраст"
                       />
                     </div>
                     <div>
