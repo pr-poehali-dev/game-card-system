@@ -274,28 +274,35 @@ const Index = () => {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-3xl mx-auto h-auto">
-            <TabsTrigger value="players" className="flex flex-col gap-1 py-3">
-              <Icon name="Users" size={20} />
-              <span className="text-xs">Игроки</span>
-            </TabsTrigger>
-            <TabsTrigger value="cards" className="flex flex-col gap-1 py-3">
-              <Icon name="Grid3x3" size={20} />
-              <span className="text-xs">Карточки</span>
-            </TabsTrigger>
-            <TabsTrigger value="game" className="flex flex-col gap-1 py-3">
-              <Icon name="Play" size={20} />
-              <span className="text-xs">Новая игра</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex flex-col gap-1 py-3">
-              <Icon name="History" size={20} />
-              <span className="text-xs">История</span>
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="flex flex-col gap-1 py-3">
-              <Icon name="BarChart3" size={20} />
-              <span className="text-xs">Статистика</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="space-y-4">
+            <TabsList className="grid grid-cols-4 w-full max-w-3xl mx-auto h-auto">
+              <TabsTrigger value="players" className="flex flex-col gap-1 py-3">
+                <Icon name="Users" size={20} />
+                <span className="text-xs">Игроки</span>
+              </TabsTrigger>
+              <TabsTrigger value="cards" className="flex flex-col gap-1 py-3">
+                <Icon name="Grid3x3" size={20} />
+                <span className="text-xs">Карточки</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex flex-col gap-1 py-3">
+                <Icon name="History" size={20} />
+                <span className="text-xs">История</span>
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="flex flex-col gap-1 py-3">
+                <Icon name="BarChart3" size={20} />
+                <span className="text-xs">Статистика</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <Button
+              onClick={() => setActiveTab('game')}
+              className="w-full max-w-3xl mx-auto h-14 text-lg font-semibold"
+              style={{ backgroundColor: '#FFD700', color: '#000' }}
+            >
+              <Icon name="Play" size={24} className="mr-2" />
+              Новая игра
+            </Button>
+          </div>
 
           <TabsContent value="players" className="animate-fade-in">
             <div className="flex justify-between items-center mb-6">
