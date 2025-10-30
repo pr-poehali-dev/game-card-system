@@ -102,11 +102,13 @@ const Index = () => {
     player: Player | null;
     card1: GameCard | null;
     card2: GameCard | null;
+    step: 'chooser' | 'player' | 'selectCards' | 'makeChoice';
   }>({
     chooser: null,
     player: null,
     card1: null,
-    card2: null
+    card2: null,
+    step: 'chooser'
   });
 
   const addPlayer = () => {
@@ -225,9 +227,14 @@ const Index = () => {
     setIsViewCardDialogOpen(true);
   };
 
-  const startNewGame = (chooser: Player, player: Player, card1: GameCard, card2: GameCard) => {
-    setGameState({ chooser, player, card1, card2 });
-    setActiveTab('game');
+  const startCardSelection = () => {
+    if (!gameState.chooser || !gameState.player) return;
+    setGameState({ ...gameState, step: 'selectCards' });
+  };
+
+  const confirmCardSelection = () => {
+    if (!gameState.card1 || !gameState.card2) return;
+    setGameState({ ...gameState, step: 'makeChoice' });
   };
 
   const makeChoice = (selectedCard: GameCard) => {
@@ -245,8 +252,12 @@ const Index = () => {
 
     setGameRounds([round, ...gameRounds]);
     toast.success(`${gameState.player.name} выбрал: ${selectedCard.title}`);
-    setGameState({ chooser: null, player: null, card1: null, card2: null });
+    setGameState({ chooser: null, player: null, card1: null, card2: null, step: 'chooser' });
     setActiveTab('history');
+  };
+
+  const resetGame = () => {
+    setGameState({ chooser: null, player: null, card1: null, card2: null, step: 'chooser' });
   };
 
   const getPlayerById = (id: string) => players.find(p => p.id === id);
@@ -649,111 +660,216 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="game" className="animate-fade-in">
-            {!gameState.chooser ? (
+            {gameState.step === 'chooser' && (
               <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                   <CardTitle>Создать новый раунд</CardTitle>
-                  <CardDescription>Выберите игроков и карточки для игры</CardDescription>
+                  <CardDescription>Кто выбирает игрока?</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <Label className="text-base mb-3 block">Кто выбирает карточки?</Label>
+                    <Label className="text-base mb-3 block">Выберите игрока</Label>
                     <div className="grid grid-cols-2 gap-3">
                       {players.map((player) => (
                         <Button
                           key={player.id}
                           variant={gameState.chooser?.id === player.id ? 'default' : 'outline'}
-                          onClick={() => setGameState({ ...gameState, chooser: player })}
+                          onClick={() => setGameState({ ...gameState, chooser: player, step: 'player' })}
                           className="h-auto py-4"
                         >
                           <div className="flex flex-col items-center gap-2">
-                            <span className="text-3xl">{player.photo}</span>
+                            <span className="text-3xl">
+                              {player.photo.startsWith('data:') ? (
+                                <img src={player.photo} alt={player.name} className="w-12 h-12 rounded-full object-cover" />
+                              ) : (
+                                player.photo
+                              )}
+                            </span>
                             <span>{player.name}</span>
                           </div>
                         </Button>
                       ))}
                     </div>
                   </div>
-
-                  {gameState.chooser && (
-                    <div>
-                      <Label className="text-base mb-3 block">Для кого выбираем?</Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {players.filter(p => p.id !== gameState.chooser?.id).map((player) => (
-                          <Button
-                            key={player.id}
-                            variant={gameState.player?.id === player.id ? 'default' : 'outline'}
-                            onClick={() => setGameState({ ...gameState, player })}
-                            className="h-auto py-4"
-                          >
-                            <div className="flex flex-col items-center gap-2">
-                              <span className="text-3xl">{player.photo}</span>
-                              <span>{player.name}</span>
-                            </div>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {gameState.player && (
-                    <>
-                      <div>
-                        <Label className="text-base mb-3 block">Первая карточка</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                          {gameCards.map((card) => (
-                            <Button
-                              key={card.id}
-                              variant={gameState.card1?.id === card.id ? 'default' : 'outline'}
-                              onClick={() => setGameState({ ...gameState, card1: card })}
-                              className="h-auto py-4"
-                              disabled={gameState.card2?.id === card.id}
-                            >
-                              <div className="flex flex-col items-center gap-2">
-                                <span className="text-3xl">{card.photo}</span>
-                                <span className="text-sm">{card.title}</span>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {gameState.card1 && (
-                        <div>
-                          <Label className="text-base mb-3 block">Вторая карточка</Label>
-                          <div className="grid grid-cols-2 gap-3">
-                            {gameCards.map((card) => (
-                              <Button
-                                key={card.id}
-                                variant={gameState.card2?.id === card.id ? 'default' : 'outline'}
-                                onClick={() => setGameState({ ...gameState, card2: card })}
-                                className="h-auto py-4"
-                                disabled={gameState.card1?.id === card.id}
-                              >
-                                <div className="flex flex-col items-center gap-2">
-                                  <span className="text-3xl">{card.photo}</span>
-                                  <span className="text-sm">{card.title}</span>
-                                </div>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {gameState.card2 && (
-                    <Button
-                      onClick={() => startNewGame(gameState.chooser!, gameState.player!, gameState.card1!, gameState.card2!)}
-                      className="w-full"
-                      size="lg"
-                    >
-                      Начать раунд
-                    </Button>
-                  )}
                 </CardContent>
               </Card>
-            ) : (
+            )}
+
+            {gameState.step === 'player' && gameState.chooser && (
+              <Card className="max-w-2xl mx-auto">
+                <CardHeader>
+                  <CardTitle>{gameState.chooser.name} выбирает для кого?</CardTitle>
+                  <CardDescription>Выберите игрока, который будет делать выбор</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label className="text-base mb-3 block">Для кого выбираем?</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {players.filter(p => p.id !== gameState.chooser?.id).map((player) => (
+                        <Button
+                          key={player.id}
+                          variant={gameState.player?.id === player.id ? 'default' : 'outline'}
+                          onClick={() => setGameState({ ...gameState, player, step: 'selectCards' })}
+                          className="h-auto py-4"
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-3xl">
+                              {player.photo.startsWith('data:') ? (
+                                <img src={player.photo} alt={player.name} className="w-12 h-12 rounded-full object-cover" />
+                              ) : (
+                                player.photo
+                              )}
+                            </span>
+                            <span>{player.name}</span>
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={resetGame} className="w-full">
+                    Назад
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {gameState.step === 'selectCards' && gameState.chooser && gameState.player && (
+              <div className="max-w-6xl mx-auto space-y-6">
+                <Card>
+                  <CardHeader className="text-center">
+                    <CardTitle>{gameState.chooser.name} выбирает карточки для {gameState.player.name}</CardTitle>
+                    <CardDescription>Выберите две карточки</CardDescription>
+                  </CardHeader>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                  <Card 
+                    className={`h-80 ${gameState.card1 ? 'border-primary border-2' : 'border-dashed border-2'} cursor-pointer hover:shadow-lg transition-all`}
+                  >
+                    {gameState.card1 ? (
+                      <div className="relative h-full" onClick={() => setGameState({ ...gameState, card1: null })}>
+                        {gameState.card1.photo.startsWith('data:') ? (
+                          <img src={gameState.card1.photo} alt={gameState.card1.title} className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 text-8xl rounded-lg">
+                            {gameState.card1.photo}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-lg" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                          <h3 className="text-xl font-bold">{gameState.card1.title}</h3>
+                          <p className="text-sm flex items-center gap-1">
+                            <Icon name="MapPin" size={14} />
+                            {gameState.card1.city}
+                          </p>
+                          <p className="text-sm">{gameState.card1.age} лет</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                        <Icon name="Plus" size={48} />
+                        <p className="mt-2">Поле 1</p>
+                      </div>
+                    )}
+                  </Card>
+
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-muted-foreground">ИЛИ</p>
+                  </div>
+
+                  <Card 
+                    className={`h-80 ${gameState.card2 ? 'border-primary border-2' : 'border-dashed border-2'} cursor-pointer hover:shadow-lg transition-all`}
+                  >
+                    {gameState.card2 ? (
+                      <div className="relative h-full" onClick={() => setGameState({ ...gameState, card2: null })}>
+                        {gameState.card2.photo.startsWith('data:') ? (
+                          <img src={gameState.card2.photo} alt={gameState.card2.title} className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 text-8xl rounded-lg">
+                            {gameState.card2.photo}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-lg" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                          <h3 className="text-xl font-bold">{gameState.card2.title}</h3>
+                          <p className="text-sm flex items-center gap-1">
+                            <Icon name="MapPin" size={14} />
+                            {gameState.card2.city}
+                          </p>
+                          <p className="text-sm">{gameState.card2.age} лет</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                        <Icon name="Plus" size={48} />
+                        <p className="mt-2">Поле 2</p>
+                      </div>
+                    )}
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Выберите карточки</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {gameCards.map((card) => (
+                        <Card
+                          key={card.id}
+                          className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all h-60 ${
+                            gameState.card1?.id === card.id || gameState.card2?.id === card.id ? 'opacity-50' : ''
+                          }`}
+                          onClick={() => {
+                            if (gameState.card1?.id === card.id || gameState.card2?.id === card.id) return;
+                            if (!gameState.card1) {
+                              setGameState({ ...gameState, card1: card });
+                            } else if (!gameState.card2) {
+                              setGameState({ ...gameState, card2: card });
+                            }
+                          }}
+                        >
+                          <div className="relative h-full">
+                            {card.photo.startsWith('data:') ? (
+                              <img src={card.photo} alt={card.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 text-6xl">
+                                {card.photo}
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                              <h3 className="text-sm font-bold">{card.title}</h3>
+                              <p className="text-xs flex items-center gap-1">
+                                <Icon name="MapPin" size={10} />
+                                {card.city}
+                              </p>
+                              <p className="text-xs">{card.age} лет</p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="flex gap-4">
+                  <Button variant="outline" onClick={resetGame} className="flex-1">
+                    Отменить
+                  </Button>
+                  <Button 
+                    onClick={confirmCardSelection} 
+                    disabled={!gameState.card1 || !gameState.card2}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    ОК
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {gameState.step === 'makeChoice' && gameState.chooser && gameState.player && gameState.card1 && gameState.card2 && (
               <div className="max-w-4xl mx-auto space-y-6">
                 <Card className="text-center">
                   <CardHeader>
@@ -766,31 +882,57 @@ const Index = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card
-                    className="cursor-pointer hover:shadow-2xl hover:scale-105 transition-all border-4 hover:border-primary"
+                    className="overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all border-4 hover:border-primary h-96"
                     onClick={() => makeChoice(gameState.card1!)}
                   >
-                    <CardHeader className="text-center">
-                      <div className="text-8xl mb-4">{gameState.card1?.photo}</div>
-                      <CardTitle className="text-2xl">{gameState.card1?.title}</CardTitle>
-                      <CardDescription className="text-base">{gameState.card1?.description}</CardDescription>
-                    </CardHeader>
+                    <div className="relative h-full">
+                      {gameState.card1.photo.startsWith('data:') ? (
+                        <img src={gameState.card1.photo} alt={gameState.card1.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 text-9xl">
+                          {gameState.card1.photo}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <h3 className="text-3xl font-bold mb-2">{gameState.card1.title}</h3>
+                        <p className="text-lg flex items-center gap-2">
+                          <Icon name="MapPin" size={18} />
+                          {gameState.card1.city}
+                        </p>
+                        <p className="text-lg">{gameState.card1.age} лет</p>
+                      </div>
+                    </div>
                   </Card>
 
                   <Card
-                    className="cursor-pointer hover:shadow-2xl hover:scale-105 transition-all border-4 hover:border-primary"
+                    className="overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all border-4 hover:border-primary h-96"
                     onClick={() => makeChoice(gameState.card2!)}
                   >
-                    <CardHeader className="text-center">
-                      <div className="text-8xl mb-4">{gameState.card2?.photo}</div>
-                      <CardTitle className="text-2xl">{gameState.card2?.title}</CardTitle>
-                      <CardDescription className="text-base">{gameState.card2?.description}</CardDescription>
-                    </CardHeader>
+                    <div className="relative h-full">
+                      {gameState.card2.photo.startsWith('data:') ? (
+                        <img src={gameState.card2.photo} alt={gameState.card2.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-purple-50 text-9xl">
+                          {gameState.card2.photo}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <h3 className="text-3xl font-bold mb-2">{gameState.card2.title}</h3>
+                        <p className="text-lg flex items-center gap-2">
+                          <Icon name="MapPin" size={18} />
+                          {gameState.card2.city}
+                        </p>
+                        <p className="text-lg">{gameState.card2.age} лет</p>
+                      </div>
+                    </div>
                   </Card>
                 </div>
 
                 <Button
                   variant="outline"
-                  onClick={() => setGameState({ chooser: null, player: null, card1: null, card2: null })}
+                  onClick={resetGame}
                   className="w-full"
                 >
                   Отменить раунд
