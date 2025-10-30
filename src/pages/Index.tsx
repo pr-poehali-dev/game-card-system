@@ -86,6 +86,9 @@ const Index = () => {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isEditPlayerDialogOpen, setIsEditPlayerDialogOpen] = useState(false);
   const [photoInput, setPhotoInput] = useState('');
+  const [editingCard, setEditingCard] = useState<GameCard | null>(null);
+  const [isEditCardDialogOpen, setIsEditCardDialogOpen] = useState(false);
+  const [cardPhotoInput, setCardPhotoInput] = useState('');
 
   const [gameState, setGameState] = useState<{
     chooser: Player | null;
@@ -154,6 +157,25 @@ const Index = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleCardPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (editingCard) {
+        setEditingCard({ ...editingCard, photo: base64String });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const addCard = () => {
     if (!newCard.title.trim()) {
       toast.error('Введите название карточки');
@@ -169,6 +191,25 @@ const Index = () => {
     setNewCard({ title: '', description: '', photo: '🎯' });
     setIsCardDialogOpen(false);
     toast.success('Карточка добавлена!');
+  };
+
+  const openEditCard = (card: GameCard) => {
+    setEditingCard(card);
+    setCardPhotoInput(card.photo);
+    setIsEditCardDialogOpen(true);
+  };
+
+  const updateCard = () => {
+    if (!editingCard) return;
+    if (!editingCard.title.trim()) {
+      toast.error('Введите название карточки');
+      return;
+    }
+    setGameCards(gameCards.map(c => c.id === editingCard.id ? editingCard : c));
+    setIsEditCardDialogOpen(false);
+    setEditingCard(null);
+    setCardPhotoInput('');
+    toast.success('Карточка обновлена!');
   };
 
   const startNewGame = (chooser: Player, player: Player, card1: GameCard, card2: GameCard) => {
@@ -432,15 +473,100 @@ const Index = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {gameCards.map((card) => (
-                <Card key={card.id} className="hover:shadow-lg transition-all hover:-translate-y-1">
+                <Card key={card.id} className="hover:shadow-lg transition-all hover:-translate-y-1 group relative">
                   <CardHeader>
-                    <div className="text-5xl mb-2">{card.photo}</div>
-                    <CardTitle className="text-lg">{card.title}</CardTitle>
-                    <CardDescription className="text-sm">{card.description}</CardDescription>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="text-5xl mb-2">
+                          {card.photo.startsWith('data:') ? (
+                            <img src={card.photo} alt={card.title} className="w-16 h-16 rounded-lg object-cover" />
+                          ) : (
+                            card.photo
+                          )}
+                        </div>
+                        <CardTitle className="text-lg">{card.title}</CardTitle>
+                        <CardDescription className="text-sm">{card.description}</CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditCard(card)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Icon name="Pencil" size={16} />
+                      </Button>
+                    </div>
                   </CardHeader>
                 </Card>
               ))}
             </div>
+
+            <Dialog open={isEditCardDialogOpen} onOpenChange={setIsEditCardDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Редактировать карточку</DialogTitle>
+                  <DialogDescription>Измените данные карточки</DialogDescription>
+                </DialogHeader>
+                {editingCard && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-card-title">Название</Label>
+                      <Input
+                        id="edit-card-title"
+                        value={editingCard.title}
+                        onChange={(e) => setEditingCard({ ...editingCard, title: e.target.value })}
+                        placeholder="Название карточки"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-card-desc">Описание</Label>
+                      <Textarea
+                        id="edit-card-desc"
+                        value={editingCard.description}
+                        onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })}
+                        placeholder="Описание карточки"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-card-photo">Фото</Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                          <div className="text-5xl">
+                            {editingCard.photo.startsWith('data:') ? (
+                              <img src={editingCard.photo} alt="Preview" className="w-16 h-16 rounded-lg object-cover" />
+                            ) : (
+                              editingCard.photo
+                            )}
+                          </div>
+                          <Input
+                            id="edit-card-photo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCardPhotoUpload}
+                            className="flex-1"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-px bg-border flex-1" />
+                          <span className="text-xs text-muted-foreground">или</span>
+                          <div className="h-px bg-border flex-1" />
+                        </div>
+                        <Input
+                          value={cardPhotoInput}
+                          onChange={(e) => {
+                            setCardPhotoInput(e.target.value);
+                            setEditingCard({ ...editingCard, photo: e.target.value });
+                          }}
+                          placeholder="Введите эмодзи 🎯"
+                          maxLength={2}
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={updateCard} className="w-full">Сохранить</Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="game" className="animate-fade-in">
